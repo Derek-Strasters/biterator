@@ -3,37 +3,7 @@ from abc import abstractmethod
 from collections.abc import MutableSequence
 from typing import Iterable, Protocol, Sequence, Tuple, TypeVar, Union, overload, Literal
 
-T = TypeVar("T")
-T_co = TypeVar("T_co", covariant=True)
-CS = TypeVar("CS", bound="ConcatenableSequence")
 ValidBits = Union[bool, Literal[1], Literal[0], Literal["1"], Literal["0"]]
-
-
-class ConcatenableSequence(Protocol[T_co]):
-    """
-    Any Sequence T where +(:T, :T) -> T.
-    Types must support indexing and concatenation.
-
-    >>> def test(a: CS, b: CS) -> CS: return a + b
-    >>> test('abc', 'def') # passes
-    'abcdef'
-    >>> test(tuple(1, 2, 3), tuple(4, 5)) # passes type check
-    >>> test(list(1, 2), list(3, 4)) # passes type check
-
-    """
-
-    def __add__(self: CS, other: CS) -> CS:
-        ...
-
-    def __getitem__(self: CS, index: int) -> T_co:
-        ...
-
-    def __len__(self) -> int:
-        ...
-
-
-# NOTE Finland uses iso8859_10 encoding.
-# NOTE The proper bitwise operation for a NOR mask is (mask_ ^ left_) & (left_ | mask_) & ~(right & mask_).
 
 
 class Bits(MutableSequence[ValidBits]):
@@ -412,40 +382,3 @@ class Bits(MutableSequence[ValidBits]):
         num_extra_bits = self.__len % 8
         bin_str = " ".join(f"{byte:#010b}" for byte in (self.__data >> num_extra_bits).to_bytes(num_bytes, "big"))
         return bin_str + " " + format(((1 << num_extra_bits) - 1) & self.__data, f"#0{num_extra_bits + 2}b")
-
-
-def reverse_byte(byte: int) -> int:
-    """
-    Reverse the bit order of an 8 bit integer.
-
-    >>> bin(203)
-    '0b11101000'
-    >>> bin(reverse_byte(203))
-    '0b00010111'
-    """
-
-    # 0 1 2 3 4 5 6 7
-    byte = (byte & 0b00001111) << 4 | (byte & 0b11110000) >> 4
-    # 4 5 6 7 0 1 2 3
-    byte = (byte & 0b00110011) << 2 | (byte & 0b11001100) >> 2
-    # 6 7 4 5 2 3 0 1
-    byte = (byte & 0b01010101) << 1 | (byte & 0b10101010) >> 1
-    # 7 6 5 4 3 2 1 0
-    return byte
-
-
-def chunked(items: Sequence[T], n: int) -> Sequence[Sequence[T]]:
-    """
-    Yield successive n-sized chunks from lst.
-    The last chunk is trunkated as needed.
-
-    :param items: A collection of things to be chunked.
-    :param n: The size of each chunk.
-
-     >>> list(chunked([1, 2, 3, 4, 5], 2))
-     [[1, 2], [3, 4], [5]]
-     >>> list(chunked((1, 1, 1, 1, 1), 2))
-     ((1), (1), (1))
-    """
-    # noinspection PyArgumentList
-    return type(items)(type(items)(items[i : i + n]) for i in range(0, len(items), n))
