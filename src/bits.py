@@ -52,7 +52,7 @@ class Bits(MutableSequence[ValidBit]):
     'hex' properties and the 'decode' method may be used to read the bits as
     bytes using a specified codec.
 
-    >>> Bits("0xFF") + "0b1001_1001" # Concatination
+    >>> Bits("0xFF") + "0b1001_1001" # Concatenation
     Bits("0b1111111110011001")
     >>> Bits("1111 0011 0000 1010")[:8] # Slicing
     Bits("0b11110011")
