@@ -18,45 +18,11 @@ from typing import (
     Container,
 )
 
-T = TypeVar("T")
-T_co = TypeVar("T_co", covariant=True)
-Rotatable = TypeVar("Rotatable", bound="ConcatenableSequence")
 ValidBit = Union[bool, Literal[1], Literal[0], Literal["1"], Literal["0"]]
 ValidBits = Union[Iterable[ValidBit], Tuple[int, int]]
 
 
-class ConcatenableSequence(Protocol[T_co]):
-    """
-    Any Sequence T where +(:T, :T) -> T.
-    Types must support indexing and concatenation.
-
-    >>> def concat_from_index(sequence: ConcatenableSequence):
-    ...     return sequence[:-1] + sequence[-1:]
-    >>> concat_from_index("abc")
-    'abc'
-    >>> concat_from_index((1, 2, 3))
-    (1, 2, 3)
-    >>> concat_from_index(["a", "b", "c"])
-    ['a', 'b', 'c']
-    >>> concat_from_index(Bits('11011'))
-    Bits("0b11011")
-    """
-
-    def __add__(self, other: Rotatable) -> Rotatable:
-        ...
-
-    def __getitem__(self, index: int) -> T_co:
-        ...
-
-    def __len__(self) -> int:
-        ...
-
-
-# NOTE Finland uses iso8859_10 encoding.
-# NOTE The proper bitwise operation for a NOR mask is (mask_ ^ left_) & (left_ | mask_) & ~(right & mask_).
-
-
-class Bits(MutableSequence[ValidBit]):
+class Bits(MutableSequence[ValidBits]):
     """
     Stores bits like an array, and can be manipulated and iterated as such.
     Bits can be instantiated with:
@@ -1049,38 +1015,3 @@ class Bits(MutableSequence[ValidBit]):
                     last_byte_fmt = f"0{self.__len_last_byte}b"
                 ret_str += prefix + format(self.__last_byte, last_byte_fmt)
         return ret_str
-
-
-def reverse_byte(byte: int) -> int:
-    """
-    Reverse the bit order of an 8 bit integer.
-
-    >>> bin(reverse_byte(0b00010111))
-    '0b11101000'
-    """
-
-    # 0 1 2 3 4 5 6 7
-    byte = (byte & 0b00001111) << 4 | (byte & 0b11110000) >> 4
-    # 4 5 6 7 0 1 2 3
-    byte = (byte & 0b00110011) << 2 | (byte & 0b11001100) >> 2
-    # 6 7 4 5 2 3 0 1
-    byte = (byte & 0b01010101) << 1 | (byte & 0b10101010) >> 1
-    # 7 6 5 4 3 2 1 0
-    return byte
-
-
-def chunked(items: Sequence[T], n: int) -> Sequence[Sequence[T]]:
-    """
-    Yield successive n-sized chunks from lst.
-    The last chunk is trunkated as needed.
-
-    :param items: A collection of things to be chunked.
-    :param n: The size of each chunk.
-
-     >>> list(chunked([1, 2, 3, 4, 5], 2))
-     [[1, 2], [3, 4], [5]]
-     >>> list(chunked((1, 1, 1, 1, 1), 2))
-     [(1, 1), (1, 1), (1,)]
-    """
-    # noinspection PyArgumentList
-    return type(items)(type(items)(items[i : i + n]) for i in range(0, len(items), n))
