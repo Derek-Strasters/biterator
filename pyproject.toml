@@ -1,4 +1,4 @@
-[tool.poetry]
+﻿[tool.poetry]
 name = "bits"
 version = "0.1.0"
 description = "Tools for working directly with bits"
@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "biterate", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "3.10"
 mypy = "^0.910"
 
 [tool.poetry.dev-dependencies]
