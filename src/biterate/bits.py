@@ -14,11 +14,6 @@ from typing import (
     Union,
     overload,
 )
-
-from biterate.const import ONES, ZEROS
-from biterate.exceptions import SubscriptError
-from biterate.types import DirtyBits, ValidBit
-
 from biterate.biterators import (
     bytes_to_bits,
     int_to_bits,
@@ -26,6 +21,9 @@ from biterate.biterators import (
     str_to_bits,
     translate_to_bits,
 )
+from biterate.const import ONES, ZEROS
+from biterate.exceptions import SubscriptError
+from biterate.types import DirtyBits, ValidBit
 
 
 class Bits(MutableSequence[bool]):
@@ -45,15 +43,11 @@ class Bits(MutableSequence[bool]):
     'hex' properties and the 'decode' method may be used to read the bits as
     bytes using a specified codec.
 
-    >>> bits = Bits()
-    >>> bits.extend('1010')  # Concatenate regular strings of binary.
-    >>> bits.bin()  # Built in string representation methods.
+    >>> bits = Bits(); bits.extend('1010'); bits.bin()  # Concatenate regular strings of binary.
     '0b1010'
-    >>> bits.extend(dict(value=15, bit_length=4))  # Concatenate bits from an integer.
-    >>> bits.bin()
+    >>> bits.extend(dict(value=15, bit_length=4)); bits.bin()  # Concatenate bits from an integer.
     '0b1010_1111'
-    >>> bits.extend(b"A")  # Concatenate bytes-like objects.
-    >>> bits.bin(compact=True)
+    >>> bits.extend(b"A"); bits.bin(compact=True)  # Concatenate bytes-like objects.
     '0b1010111101000001'
     >>> Bits("0xFF") + "0b1001_1001" # Concatenation directly with (+) operator.
     Bits("0b1111111110011001")
@@ -204,11 +198,6 @@ class Bits(MutableSequence[bool]):
         >>> bits_1.bin(True, prefix="")
         '1111'
         """
-        new = type(self)()
-        new.__bytes = self.__bytes.copy()
-        new.__len = self.__len
-        new.__last_byte = self.__last_byte
-        new.__len_last_byte = self.__len_last_byte
         return deepcopy(self)
 
     def __repr__(self) -> str:
@@ -217,6 +206,17 @@ class Bits(MutableSequence[bool]):
 
         Equivalent to code which would create an identical object
         but only up to a size of 64 bytes; after which it is abbreviated.
+
+        >>> Bits([1, 0]*32)
+        Bits("0b1010101010101010101010101010101010101010101010101010101010101010")
+        >>> Bits('0xCAB00D1E'*6)
+        Bits(4969887947907717934627081996608040267272832614365316255006, 192)
+        >>> Bits('0xBA5EBA11'*10)
+        Bits("0xba5eba11ba5eba11ba5eba11ba5eba11ba5eba11ba5eba11ba5eba11ba5eba11ba5eba11ba5eba11")
+        >>> Bits('0x0DDBA11'*20)
+        Bits("0x0D 0xDB 0xA1 ... 0xDD 0xBA 0x11")
+        >>> Bits('0x0DDBA11'*20) + '1001'
+        Bits("0x0D 0xDB 0xA1 ... 0xBA 0x11 0x90")
         """
         if len(self) <= 64:
             return f'Bits("{format(int(self), f"#0{self.__len + 2}b")}")'
@@ -240,8 +240,7 @@ class Bits(MutableSequence[bool]):
         in which case return single `bytes` objects.
         An incomplete byte will be written from the left, for example:
 
-        >>> for byte in Bits('10101010 1111').iter_bytes():
-        ...     print(bin(byte))
+        >>> for byte in Bits('10101010 1111').iter_bytes(): print(bin(byte))
         0b10101010
         0b11110000
 
@@ -258,7 +257,6 @@ class Bits(MutableSequence[bool]):
         For example:
         >>> bytes(Bits('1111'))
         b'\xf0'
-
         """
         return bytes(self.iter_bytes())
 
@@ -267,6 +265,9 @@ class Bits(MutableSequence[bool]):
         Decode the bytes using the codec registered for encoding.
 
         Wraps the `bytes.decode()` method.
+
+        >>> Bits('01101000 01101001 00100000 01101101 01100001 01110010 01101011').decode('utf-8')
+        'hi mark'
 
         :param args:
         :param kwargs:
@@ -301,6 +302,14 @@ class Bits(MutableSequence[bool]):
         """
         Ensure bit is a ValidBit, cast to bool.
 
+        >>> Bits._clean_bit('1')
+        True
+        >>> Bits._clean_bit(0)
+        False
+        >>> Bits._clean_bit('a')
+        Traceback (most recent call last):
+        TypeError: could not determine single bit value for 'a'
+
         :param value: The value to check.
         :return: The bool representation.
         """
@@ -315,24 +324,17 @@ class Bits(MutableSequence[bool]):
         """
         Insert a bit at given index.
 
-        >>> bits = Bits('001')
-        >>> bits.insert(0, True)
-        >>> bits.bin()
+        >>> bits = Bits('001'); bits.insert(0, True); bits.bin()
         '0b1001'
-        >>> for _ in range(4):
-        ...     bits.insert(len(bits), False)
+        >>> for _ in range(4): bits.insert(len(bits), False)
         >>> bits.bin()
         '0b1001_0000'
-        >>> bits.insert(5, "1")
-        >>> bits.bin()
+        >>> bits.insert(5, "1"); bits.bin()
         '0b1001_0100 0b0'
-        >>> bits.insert(-2, 1)
-        >>> bits.bin()
+        >>> bits.insert(-2, 1); bits.bin()
         '0b1001_0101 0b00'
-        >>> bits = Bits('11110000 11110000 11110000 11110000 11110000')
-        >>> bits.insert(5, "1")
-        >>> bits.bin(prefix="", group=False)
-        '11110100 01111000 01111000 01111000 01111000 0'
+        >>> bits = Bits('11110000 11110000 11110000 '); bits.insert(5, "1"); bits.bin(prefix="", group=False)
+        '11110100 01111000 01111000 0'
 
         :param index: The index at whitch to insert the bit.
         :param value: The bit to be inserted.
@@ -386,7 +388,9 @@ class Bits(MutableSequence[bool]):
 
     def extend(self, values: DirtyBits) -> None:
         """Override of the mixin to add data validation."""
-        super().extend(self._clean_bits(values))
+        # Prevent race conditions
+        for v in self.copy() if values is self else self._clean_bits(values):
+            self.append(v)
 
     @staticmethod
     def _insert_bit_in_byte(byte: int, length: int, index: int, value: bool) -> int:
@@ -411,11 +415,9 @@ class Bits(MutableSequence[bool]):
         """
         Call when a bit has been added anywhere in the last (incomplete) byte.
 
-        >>> bits = Bits(0b111_1111, 7)
-        >>> bits.last_byte_length
+        >>> bits = Bits(0b111_1111, 7); bits.last_byte_length
         7
-        >>> bits.append(False)
-        >>> bits.last_byte_length
+        >>> bits.append(False); bits.last_byte_length
         0
         >>> len(bits)
         8
@@ -454,6 +456,10 @@ class Bits(MutableSequence[bool]):
         Bits("0b00001111")
         >>> Bits("00001111 00110011 01010101")[-8:]
         Bits("0b01010101")
+        >>> Bits('01001001')["s"]
+        Traceback (most recent call last):
+        ...
+        biterate.exceptions.SubscriptError: unsupported subscript, 'Bits' does not support 'str' subscripts
 
         :param index: The index or slice to retrieve.
         :return: The new Bits object or a bit value.
@@ -524,18 +530,13 @@ class Bits(MutableSequence[bool]):
         """
         Set a bit or slice of bits.
 
-        >>> bits = Bits('1111 1111 1111')
-        >>> bits[4:8] = '0000'
-        >>> bits.bin()
+        >>> bits = Bits('1111 1111 1111'); bits[4:8] = '0000'; bits.bin()
         '0b1111_0000 0b1111'
-        >>> bits[4:8] = 15
-        >>> bits.bin()
+        >>> bits[4:8] = 15; bits.bin()
         '0b1111_1111 0b1111'
-        >>> bits[-4:] = '0000'
-        >>> bits.bin()
+        >>> bits[-4:] = '0000'; bits.bin()
         '0b1111_1111 0b0000'
-        >>> bits[0] = False
-        >>> bits.bin()
+        >>> bits[0] = False; bits.bin()
         '0b0111_1111 0b0000'
 
         :param index: The index or slice to modify.
@@ -609,19 +610,13 @@ class Bits(MutableSequence[bool]):
         """
         Remove a bit or a slice.
 
-        >>> bits = Bits("1000 0000 0000 0100 0001")
-        >>> del bits[13]
-        >>> bits.bin()
+        >>> bits = Bits("1000 0000 0000 0100 0001"); del bits[13]; bits.bin()
         '0b1000_0000 0b0000_0000 0b001'
-        >>> bits = Bits("1010 1010 1010 1010 0000")
-        >>> del bits[1::2]
-        >>> bits.bin()
+        >>> bits = Bits("1010 1010 1010 1010 0000"); del bits[1::2]; bits.bin()
         '0b1111_1111 0b00'
-        >>> del bits[8:10]
-        >>> bits.bin()
+        >>> del bits[8:10]; bits.bin()
         '0b1111_1111'
-        >>> del bits[-4:]
-        >>> bits.bin()
+        >>> del bits[-4:]; bits.bin()
         '0b1111'
 
         :param index: Index or slice to delete.
@@ -695,11 +690,9 @@ class Bits(MutableSequence[bool]):
         """
         Call when a bit has been removed anywhere in the last (incomplete) byte.
 
-        >>> bits = Bits(0b010001000, 9)
-        >>> bits.last_byte_length
+        >>> bits = Bits(0b010001000, 9); bits.last_byte_length
         1
-        >>> del bits[0]
-        >>> bits.last_byte_length
+        >>> del bits[0]; bits.last_byte_length
         0
         """
         self.__len_last_byte -= 1
@@ -785,6 +778,8 @@ class Bits(MutableSequence[bool]):
         '0b0110_1001'
         >>> (Bits("0110") + dict(value=15, bit_length=4)).bin()  # Concat an integer
         '0b0110_1111'
+        >>> bits = Bits('10'*10); bits += bits; bits.bin(True, "")
+        '1010101010101010101010101010101010101010'
 
         :param other: Other object to be concatenated.
         :return: New Bits object that is a concatenation of the inputs.
@@ -813,12 +808,9 @@ class Bits(MutableSequence[bool]):
         """
         Extend in-place.
 
-        >>> bits = Bits("1111")
-        >>> bits += "0000"
-        >>> bits.bin()
+        >>> bits = Bits("1111"); bits += "0000"; bits.bin()
         '0b1111_0000'
-        >>> bits += dict(value=255, bit_length=8)
-        >>> bits.bin()
+        >>> bits += dict(value=255, bit_length=8); bits.bin()
         '0b1111_0000 0b1111_1111'
 
         :param other: Bits to extend.
@@ -851,9 +843,7 @@ class Bits(MutableSequence[bool]):
         """
         Left bitshift in-place.
 
-        >>> bits = Bits("1111")
-        >>> bits <<= 4
-        >>> bits.bin()
+        >>> bits = Bits("1111"); bits <<= 4; bits.bin()
         '0b1111_0000'
 
         :param index: Number of places to shift.
@@ -884,9 +874,7 @@ class Bits(MutableSequence[bool]):
         """
         Right bitshift in-place.
 
-        >>> bits = Bits("1111 1111")
-        >>> bits >>= 4
-        >>> bits.bin()
+        >>> bits = Bits("1111 1111"); bits >>= 4; bits.bin()
         '0b1111'
 
         :param index: Number of places to shift.
@@ -924,9 +912,7 @@ class Bits(MutableSequence[bool]):
         """
         Bitwise 'and' with other bits; in-place.
 
-        >>> bits_ = Bits("1110")
-        >>> bits_ &= "0111"
-        >>> bits_.bin()
+        >>> bits_ = Bits("1110"); bits_ &= "0111"; bits_.bin()
         '0b0110'
 
         :param other: The Iterable bits to 'and' with.
@@ -968,9 +954,7 @@ class Bits(MutableSequence[bool]):
         """
         Bitwise 'xor' with other bits; in-place.
 
-        >>> bits_ = Bits("0110")
-        >>> bits_ ^= "0101"
-        >>> bits_.bin()
+        >>> bits_ = Bits("0110"); bits_ ^= "0101"; bits_.bin()
         '0b0011'
 
         :param other: The Iterable bits to 'xor' with.
@@ -1006,9 +990,7 @@ class Bits(MutableSequence[bool]):
         """
         Bitwise 'or' with other bits; in-place.
 
-        >>> bits_ = Bits("1100")
-        >>> bits_ |= "0011"
-        >>> bits_.bin()
+        >>> bits_ = Bits("1100"); bits_ |= "0011"; bits_.bin()
         '0b1111'
 
         :param other: The Iterable bits to 'or' with.
@@ -1029,8 +1011,7 @@ class Bits(MutableSequence[bool]):
 
         This property gives the length of the last incomplete byte in the object.
 
-        >>> bits = Bits("10011001 10011001 1010")
-        >>> bits[-bits.last_byte_length:].bin(True, prefix="")
+        >>> bits = Bits("10011001 1010"); bits[-bits.last_byte_length:].bin(True, prefix="")
         '1010'
 
         :return: Number of bits in the last incomplete byte.
