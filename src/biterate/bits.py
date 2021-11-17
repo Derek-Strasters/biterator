@@ -14,6 +14,7 @@ from typing import (
     Union,
     overload,
 )
+
 from biterate.biterators import (
     bytes_to_bits,
     int_to_bits,
@@ -32,7 +33,7 @@ class Bits(MutableSequence[bool]):
 
     Bits can be instantiated with:
         * A string of binary e.g. "1010" or "0b1100_0010".
-        * A prefixed string of hexadecimal e.g. "0x1f 0xb2" or "0xbadc0de".
+        * A prefixed string of hexadecimals e.g. "0x1f 0xb2" or "0xbadc0de".
         * A bytes-like object.
         * An integer-like object with a specified bit_length.
         * An Iterable containing any of: True, False, 0, 1, "0", "1".
