@@ -8,7 +8,6 @@ packages = [{include = "biterate", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "3.10"
-mypy = "^0.910"
 
 [tool.poetry.dev-dependencies]
 pylint = "*"
@@ -18,6 +17,7 @@ pydocstyle = "*"
 pytest = "*"
 mypy = "*"
 coverage = "*"
+mypy = "*"
 
 flake8 = "*"
 flake8-black = "*"
@@ -45,7 +45,7 @@ addopts = "--doctest-modules"
 match-dir = "(?!venv).*"
 
 [tool.pylint.messages_control]
-disable = "C0330, C0326"
+disable = "bad-continuation, bad-whitespace"
 
 [tool.pylint.format]
 max-line-length = "120"
