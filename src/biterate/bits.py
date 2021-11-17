@@ -14,6 +14,7 @@ from typing import (
     Union,
     overload,
 )
+
 from biterate.biterators import (
     bytes_to_bits,
     int_to_bits,
