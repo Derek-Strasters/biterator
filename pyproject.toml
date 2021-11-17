@@ -1,4 +1,4 @@
-﻿[tool.poetry]
+[tool.poetry]
 name = "bits"
 version = "0.1.0"
 description = "Tools for working directly with bits"
