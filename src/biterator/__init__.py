@@ -26,3 +26,4 @@ __all__ = [
     "DirtyBits",
     "ValidBit",
 ]
+__version__ = '0.1.0'
