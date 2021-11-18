@@ -3,7 +3,7 @@ name = "biterator"
 version = "0.1.0"
 description = "Bit manipulation and iteration tool suite."
 authors = ["derek-strasters <paracite.org@gmail.com>"]
-readme = "README.md"
+readme = "README.rst"
 
 [tool.poetry.dependencies]
 python = "^3.9"
