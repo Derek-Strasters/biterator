@@ -12,7 +12,9 @@ from biterator.bits import Bits
 from biterator.const import ONES, ZEROS
 from biterator.types import DirtyBits, ValidBit
 
+__version__ = "0.1.0"
 __all__ = [
+    "__version__",
     "Bits",
     "ONES",
     "ZEROS",
@@ -26,4 +28,3 @@ __all__ = [
     "DirtyBits",
     "ValidBit",
 ]
-__version__ = '0.1.0'
