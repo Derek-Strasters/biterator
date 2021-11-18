@@ -1,7 +1,7 @@
 """Iterators that deal in bits."""
 from typing import ByteString, Container, Iterable, Iterator
 
-from biterate.const import ONES, PAD, ZEROS
+from biterator.const import ONES, PAD, ZEROS
 
 
 def iter_bits(bits: Iterable) -> Iterator[bool]:

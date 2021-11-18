@@ -1,5 +1,5 @@
 """Bit tools."""
-from biterate.biterators import (
+from biterator.biterators import (
     bin_str_to_bits,
     bytes_to_bits,
     hex_str_to_bits,
@@ -8,9 +8,9 @@ from biterate.biterators import (
     str_to_bits,
     translate_to_bits,
 )
-from biterate.bits import Bits
-from biterate.const import ONES, ZEROS
-from biterate.types import DirtyBits, ValidBit
+from biterator.bits import Bits
+from biterator.const import ONES, ZEROS
+from biterator.types import DirtyBits, ValidBit
 
 __all__ = [
     "Bits",

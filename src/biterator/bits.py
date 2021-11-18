@@ -15,16 +15,16 @@ from typing import (
     overload,
 )
 
-from biterate.biterators import (
+from biterator.biterators import (
     bytes_to_bits,
     int_to_bits,
     iter_bits,
     str_to_bits,
     translate_to_bits,
 )
-from biterate.const import ONES, ZEROS
-from biterate.exceptions import SubscriptError
-from biterate.types import DirtyBits, ValidBit
+from biterator.const import ONES, ZEROS
+from biterator.exceptions import SubscriptError
+from biterator.types import DirtyBits, ValidBit
 
 
 class Bits(MutableSequence[bool]):
@@ -460,7 +460,7 @@ class Bits(MutableSequence[bool]):
         >>> Bits('01001001')["s"]
         Traceback (most recent call last):
         ...
-        biterate.exceptions.SubscriptError: unsupported subscript, 'Bits' does not support 'str' subscripts
+        biterator.exceptions.SubscriptError: unsupported subscript, 'Bits' does not support 'str' subscripts
 
         :param index: The index or slice to retrieve.
         :return: The new Bits object or a bit value.
