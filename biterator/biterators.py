@@ -1,5 +1,5 @@
 """Iterators that deal in bits."""
-from typing import ByteString, Container, Iterable, Iterator
+from typing import ByteString, Container, Iterable, Iterator, Union
 
 from biterator.const import ONES, PAD, ZEROS
 
@@ -16,6 +16,9 @@ def iter_bits(bits: Iterable) -> Iterator[bool]:
     :param bits: The Iterable over which to iterate.
     """
     for bit in bits:
+        if isinstance(bit, bool):
+            yield bit
+            continue
         if bit in ONES:
             yield True
             continue
@@ -197,3 +200,58 @@ def str_to_bits(bit_str: str) -> Iterator[bool]:
         return
 
     yield from bin_str_to_bits(bit_str)
+
+
+def biterator(
+    bit_values: Union[Iterable, int],
+    bit_length: int = None,
+    ones: Container = None,
+    zeros: Container = None,
+) -> Iterator[bool]:
+    """
+    Attempt, by a variety of means, to iterate over `bit_values`; yields Booleans.
+
+    :param bit_values: The bits containing object.
+    :param bit_length: Specifies bit length for integer values of `dirty_bits`
+    :param ones: If set, symbols in this collection will represent True bits.
+    :param zeros: If set, symbols in this collection will represent False bits.
+    """
+    # Iterate the bits of an integer.
+    if isinstance(bit_values, int):
+        if bit_length is not None and isinstance(int(bit_length), int) and bit_length > 0:
+            yield from int_to_bits(value=bit_values, bit_length=int(bit_length))
+            return
+        raise ValueError("'bit_length' must be provided and must be greater than 0 for integer values")
+
+    # Non-integers:
+
+    # Translate elements of any kind in to bits.
+    if ones is not None or zeros is not None:
+        yielder = translate_to_bits(bit_values, ones, zeros)
+
+    # Iterate the bits of a Hexadecimal or Binary expressed as a string.
+    elif isinstance(bit_values, str):
+        yielder = str_to_bits(bit_values)
+
+    # Iterate bytes-like objects.
+    elif isinstance(bit_values, ByteString):
+        yielder = bytes_to_bits(bit_values)
+
+    # Attempt to iterate from any Iterable.
+    elif isinstance(bit_values, Iterable):
+        yielder = iter_bits(bit_values)
+
+    else:
+        raise TypeError(f"unsupported type {repr(bit_values)}")
+
+    # If bit_length is specified, return no more bits than that value
+    if bit_length is not None:
+        if isinstance(int(bit_length), int) and bit_length > 0:
+            for i, value in enumerate(yielder):
+                if i < bit_length:
+                    yield value
+                    continue
+                return
+        ValueError("'bit_length' must be an integer greater than 0")
+
+    yield from yielder

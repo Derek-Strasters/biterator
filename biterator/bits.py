@@ -1,27 +1,20 @@
-"""Bits Utility."""
+"""Bit manipulation class."""
 import math
 from abc import abstractmethod
-from collections.abc import MutableSequence
 from copy import deepcopy
 from typing import (
     Any,
-    ByteString,
     Container,
     Iterable,
     Iterator,
+    MutableSequence,
     SupportsInt,
     Tuple,
     Union,
     overload,
 )
 
-from biterator.biterators import (
-    bytes_to_bits,
-    int_to_bits,
-    iter_bits,
-    str_to_bits,
-    translate_to_bits,
-)
+from biterator.biterators import biterator
 from biterator.const import ONES, ZEROS
 from biterator.exceptions import SubscriptError
 from biterator.types import DirtyBits, ValidBit
@@ -60,6 +53,9 @@ class Bits(MutableSequence[bool]):
     Bits("0b11110000")
     >>> Bits(15, bit_length=4) # Add bits from integers
     Bits("0b1111")
+    >>> Bits(255, -8)
+    Traceback (most recent call last):
+    ValueError: 'bit_length' must be provided and must be greater than 0 for integer values
 
     All bitwise operators are supported.
     'NOR' mask example, left and right 'NOR' with eachother when the mask is active:
@@ -79,6 +75,28 @@ class Bits(MutableSequence[bool]):
     # Contains the trailing (incomplete) byte; has less than the 8 bits of an actual byte.
     __last_byte: int
     __len_last_byte: int
+
+    def __new__(cls, bit_values: Union[Iterable, int] = None, *args, **kwargs):
+        """
+        Copy Bits object if passed as argument to Bits class.
+
+        >>> class BitsTest(Bits):
+        ...     def copy(self):
+        ...         print('copied')
+        ...         return super().copy()
+        >>> bits_1 = BitsTest('1010')
+        >>> bits_2 = BitsTest(bits_1)
+        copied
+        >>> bits_2 += '1111'
+        >>> bits_1
+        Bits("0b1010")
+        >>> bits_2
+        Bits("0b10101111")
+
+        """
+        if isinstance(bit_values, cls):
+            return bit_values.copy()
+        return super().__new__(cls)
 
     def __init__(
         self,
@@ -112,6 +130,11 @@ class Bits(MutableSequence[bool]):
         ...         yield from double_gen(size - 1)
         >>> Bits(double_gen(16)) # Supports generators
         Bits("0b1001100110011001")
+        >>> Bits(255, 8)
+        Bits("0b11111111")
+        >>> Bits(255)
+        Traceback (most recent call last):
+        ValueError: 'bit_length' must be provided and must be greater than 0 for integer values
 
         :param bit_values: Values to initialize a Bits object with.
         :param bit_length: Bit length if an integer is given for bit_values.
@@ -124,17 +147,11 @@ class Bits(MutableSequence[bool]):
         self.__len = 0
 
         if bit_values is None and any(arg is not None for arg in (bit_length, ones, zeros)):
-            raise ValueError("unexpected argument, 'bit_values' must be set or none must be set")
+            raise ValueError("unexpected argument, 'bit_values' must be set or there must be no other args set")
 
         elif bit_values is not None:
-            if isinstance(bit_values, int):
-                if isinstance(bit_length, int):
-                    self.extend(self._clean_bits(dict(value=bit_values, bit_length=bit_length), ones, zeros))
-                    return
-                raise TypeError("argument 'bit_length' must be set if 'bit_values' is an integer")
-            else:
-                self.extend(self._clean_bits(bit_values, ones, zeros))
-                return
+            for value in biterator(bit_values, bit_length=bit_length, ones=ones, zeros=zeros):
+                self.append(value)
 
     @classmethod
     def _clean_bits(
@@ -143,11 +160,20 @@ class Bits(MutableSequence[bool]):
         ones: Container = None,
         zeros: Container = None,
     ) -> Iterator[bool]:
+        # noinspection PyUnresolvedReferences
         """
-        Attempt, by a variety of means, to iterate over `dirty_bits`; yields Booleans.
+        Attempt, by a biterator, to iterate over `dirty_bits`; yields Booleans.
 
         `dirty_bits` can be a dictionary of the form {"value": 15, "bit_length": 4}
         to iterate over the bits of an integer.
+
+        >>> list(Bits._clean_bits(dict(value=255, bit_length=8))) == [True] * 8
+        True
+        >>> "".join("1" if bit else "0" for bit in Bits._clean_bits((1, 0, 0, 1)))
+        '1001'
+        >>> list(Bits._clean_bits(dict(value=255)))
+        Traceback (most recent call last):
+        ValueError: unsupported dict format {'value': 255}
 
         :param dirty_bits: The bits containing object.
         :param ones: If set, symbols in this collection will represent True bits.
@@ -158,34 +184,17 @@ class Bits(MutableSequence[bool]):
             yield from dirty_bits
             return
 
-        # Translate elements of any kind in to bits.
-        if ones is not None or zeros is not None:
-            yield from translate_to_bits(dirty_bits, ones, zeros)
-            return
-
-        # Iterate the bits of an integer.
+        # Biterate an integer
         if isinstance(dirty_bits, dict):
             if "value" in dirty_bits and "bit_length" in dirty_bits:
-                yield from int_to_bits(**dirty_bits)
+                bit_values = dirty_bits["value"]
+                bit_length = dirty_bits["bit_length"]
+                yield from biterator(bit_values=bit_values, bit_length=bit_length)
                 return
             raise ValueError(f"unsupported dict format {repr(dirty_bits)}")
 
-        # Iterate the bits of a Hexadecimal or Binary expressed as a string.
-        if isinstance(dirty_bits, str):
-            yield from str_to_bits(dirty_bits)
-            return
-
-        # Iterate bytes-like objects.
-        if isinstance(dirty_bits, ByteString):
-            yield from bytes_to_bits(dirty_bits)
-            return
-
-        # Attempt to iterate from any Iterable.
-        if isinstance(dirty_bits, Iterable):
-            yield from iter_bits(dirty_bits)
-            return
-
-        raise TypeError(f"unsupported type {repr(dirty_bits)}")
+        # Biterate other values
+        yield from biterator(bit_values=dirty_bits, ones=ones, zeros=zeros)
 
     def copy(self) -> "Bits":
         """
@@ -202,6 +211,7 @@ class Bits(MutableSequence[bool]):
         return deepcopy(self)
 
     def __repr__(self) -> str:
+        # noinspection PyUnresolvedReferences
         """
         Represent the Bits object.
 
@@ -210,27 +220,41 @@ class Bits(MutableSequence[bool]):
 
         >>> Bits([1, 0]*32)
         Bits("0b1010101010101010101010101010101010101010101010101010101010101010")
+        >>> exec("bits = " + repr(Bits([1, 0]*32))); bits == Bits([1, 0]*32)
+        True
         >>> Bits('0xCAB00D1E'*6)
         Bits(4969887947907717934627081996608040267272832614365316255006, 192)
+        >>> exec("bits = " + repr(Bits('0xCAB00D1E'*6))); bits == Bits('0xCAB00D1E'*6)
+        True
         >>> Bits('0xBA5EBA11'*10)
-        Bits("0xba5eba11ba5eba11ba5eba11ba5eba11ba5eba11ba5eba11ba5eba11ba5eba11ba5eba11ba5eba11")
-        >>> Bits('0x0DDBA11'*20)
-        Bits("0x0D 0xDB 0xA1 ... 0xDD 0xBA 0x11")
-        >>> Bits('0x0DDBA11'*20) + '1001'
-        Bits("0x0D 0xDB 0xA1 ... 0xBA 0x11 0x90")
+        Bits("0xBA5EBA11BA5EBA11BA5EBA11BA5EBA11BA5EBA11BA5EBA11BA5EBA11BA5EBA11BA5EBA11BA5EBA11")
+        >>> exec("bits = " + repr(Bits('0xBA5EBA11'*10))); bits == Bits('0xBA5EBA11'*10)
+        True
+        >>> Bits('0xDEADBEEF'*10) + '1'
+        Bits("0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF80", 321)
+        >>> exec("bits = " + repr(Bits('0xDEADBEEF'*10) + '1')); bits == Bits('0xDEADBEEF'*10) + '1'
+        True
+        >>> Bits('0x0DDBA11'*200)
+        Bits("0x0D 0xDB 0xA1 ... 0xDD 0xBA 0x11", bit_length=5_600)
+        >>> Bits('0x0DDBA11'*200) + '1001'
+        Bits("0x0D 0xDB 0xA1 ... 0xBA 0x11 0x90", bit_length=5_604)
         """
-        if len(self) <= 64:
+        if self.__len <= 64:
             return f'Bits("{format(int(self), f"#0{self.__len + 2}b")}")'
 
         largest_possible_decimal = int(math.log(1 << self.__len, 10))
         if largest_possible_decimal <= 64:
             return f'Bits({format(int(self), f"0{largest_possible_decimal}d")}, {self.__len})'
 
-        if len(self) // 8 <= 64:
-            return f'Bits("{format(int(self), f"#0{len(self) // 8 + 2}x")}")'
+        if self.__len // 8 <= 64:
+            if self.__len_last_byte > 0:
+                return f'Bits("{self.hex(compact=True)}", {self.__len})'
+            return f'Bits("{self.hex(compact=True)}")'
+
+        length_str = f"bit_length={self.__len:_d}"
         if self.__len_last_byte > 0:
-            return f'Bits("{self[:24].hex()} ... {self[-(self.__len_last_byte + 16):].hex()}")'
-        return f'Bits("{self[:24].hex()} ... {self[-24:].hex()}")'
+            return f'Bits("{self[:24].hex()} ... {self[-(self.__len_last_byte + 16):].hex()}", {length_str})'
+        return f'Bits("{self[:24].hex()} ... {self[-24:].hex()}", {length_str})'
 
     def iter_bytes(self) -> Iterator[int]:
         # noinspection PyUnresolvedReferences
@@ -278,7 +302,10 @@ class Bits(MutableSequence[bool]):
 
     def __bool__(self):
         """Return true if not empty."""
-        return len(self.__bytes) > 0 or bool(self.__last_byte)
+        for byte in self.__bytes:
+            if byte > 0:
+                return True
+        return bool(self.__last_byte)
 
     def _byte_bit_indices(self, index: int) -> Tuple[int, int, int]:
         """
@@ -287,12 +314,12 @@ class Bits(MutableSequence[bool]):
         :param index: The index to calculate.
         :return: The tuple with computed index values.
         """
-        if index >= len(self) or index < -len(self):
+        if index >= self.__len or index < -self.__len:
             raise IndexError
 
         # Modulo corrects negative indices
         if index < 0:
-            index %= len(self)
+            index %= self.__len
 
         # The first is the index of the byte that the index is within.
         # The second is the index of the bit within the byte (counting from the left).
@@ -336,6 +363,9 @@ class Bits(MutableSequence[bool]):
         '0b1001_0101 0b00'
         >>> bits = Bits('11110000 11110000 11110000 '); bits.insert(5, "1"); bits.bin(prefix="", group=False)
         '11110100 01111000 01111000 0'
+        >>> bits.insert(0, 'g')
+        Traceback (most recent call last):
+        TypeError: could not determine single bit value for 'g'
 
         :param index: The index at whitch to insert the bit.
         :param value: The bit to be inserted.
@@ -346,17 +376,17 @@ class Bits(MutableSequence[bool]):
         # If the index is above the length, set it to the length.
         # If the index is below the negative length, set it to the negative length.
         # Then if the new index is negative, take the modulo to get the correct positive index.
-        if len(self) == 0:
+        if self.__len == 0:
             index = 0
         else:
             if index >= 0:
-                index = min(len(self), index)
+                index = min(self.__len, index)
             else:
-                index = max(-len(self), index) % len(self)
+                index = max(-self.__len, index) % self.__len
         byte_index, bit_index = index // 8, index % 8
 
         # If appending to the end.
-        if index == len(self):
+        if index == self.__len:
             self.__last_byte = (self.__last_byte << 1) | value
             self._increment_last_byte()
 
@@ -383,13 +413,9 @@ class Bits(MutableSequence[bool]):
             self.__last_byte = (carry << self.__len_last_byte) | self.__last_byte
             self._increment_last_byte()
 
-    def append(self, value: ValidBit) -> None:
-        """Override of the mixin to add data validation."""
-        super().append(self._clean_bit(value) if not isinstance(value, bool) else value)
-
     def extend(self, values: DirtyBits) -> None:
         """Override of the mixin to add data validation."""
-        # Prevent race conditions
+        # Prevent race conditions by copying if extending by self
         for v in self.copy() if values is self else self._clean_bits(values):
             self.append(v)
 
@@ -459,7 +485,6 @@ class Bits(MutableSequence[bool]):
         Bits("0b01010101")
         >>> Bits('01001001')["s"]
         Traceback (most recent call last):
-        ...
         biterator.exceptions.SubscriptError: unsupported subscript, 'Bits' does not support 'str' subscripts
 
         :param index: The index or slice to retrieve.
@@ -476,7 +501,7 @@ class Bits(MutableSequence[bool]):
             return self._get_bit_from_byte(self.__bytes[byte_index], 8, bit_index)
 
         if isinstance(index, slice):
-            start, stop, step = index.indices(len(self))
+            start, stop, step = index.indices(self.__len)
 
             # For the case where the slice starts from a whole byte.
             if step == 1 and start % 8 == 0:
@@ -556,7 +581,7 @@ class Bits(MutableSequence[bool]):
                 self.__bytes[byte_index] = self._set_bit_in_byte(self.__bytes[byte_index], 8, bit_index, other)
 
         elif isinstance(index, slice):
-            start, stop, step = index.indices(len(self))
+            start, stop, step = index.indices(self.__len)
 
             # Cast other to a Bits object
             if isinstance(other, int):
@@ -657,7 +682,7 @@ class Bits(MutableSequence[bool]):
                 self._decrement_last_byte()
 
         elif isinstance(index, slice):
-            start, stop, step = index.indices(len(self))
+            start, stop, step = index.indices(self.__len)
 
             # NOTE: ***VERY inefficient*** Consider refactor.
             # NOTE: Good opportunity to use interval library to remove all deleted bits and concat what remains.
@@ -744,13 +769,33 @@ class Bits(MutableSequence[bool]):
         return NotImplemented
 
     def __eq__(self, other: Any) -> bool:
-        """Int value of bits is equal to the int value of other."""
+        """Bits are equal or Int value of Bits are equal to the int value of other."""
+        if isinstance(other, type(self)):
+            if all(
+                (
+                    self.__len == other.__len,
+                    self.__bytes == other.__bytes,
+                    self.__last_byte == other.__last_byte,
+                ),
+            ):
+                return True
+            return False
         if isinstance(other, SupportsInt):
             return int(self) == int(other)
         return NotImplemented
 
     def __ne__(self, other: Any) -> bool:
-        """Int value of bits is not equal to the int value of other."""
+        """Bits are not equal or Int value of Bits are not equal to the int value of other."""
+        if isinstance(other, type(self)):
+            if not all(
+                (
+                    self.__len == other.__len,
+                    self.__bytes == other.__bytes,
+                    self.__last_byte == other.__last_byte,
+                ),
+            ):
+                return True
+            return False
         if isinstance(other, SupportsInt):
             return int(self) != int(other)
         return NotImplemented
@@ -781,6 +826,11 @@ class Bits(MutableSequence[bool]):
         '0b0110_1111'
         >>> bits = Bits('10'*10); bits += bits; bits.bin(True, "")
         '1010101010101010101010101010101010101010'
+        >>> Bits('01000101') + b"Z"
+        Bits("0b0100010101011010")
+        >>> Bits('01000101') + "Z"
+        Traceback (most recent call last):
+        ValueError: non valid binary 'Z' was found in the string
 
         :param other: Other object to be concatenated.
         :return: New Bits object that is a concatenation of the inputs.
@@ -924,7 +974,7 @@ class Bits(MutableSequence[bool]):
             for index, bits in enumerate(zip(self, self._clean_bits(other))):
                 self[index] = bits[0] & bits[1]
                 len_other += 1
-            if len(self) > len_other:
+            if self.__len > len_other:
                 del self[-len_other:]
             return self
         return NotImplemented
@@ -965,7 +1015,7 @@ class Bits(MutableSequence[bool]):
         for index, bits in enumerate(zip(self, self._clean_bits(other))):
             self[index] = bits[0] ^ bits[1]
             len_other += 1
-        if len(self) > len_other:
+        if self.__len > len_other:
             del self[-len_other:]
         return self
 
@@ -1001,7 +1051,7 @@ class Bits(MutableSequence[bool]):
         for index, bits in enumerate(zip(self, self._clean_bits(other))):
             self[index] = bits[0] | bits[1]
             len_other += 1
-        if len(self) > len_other:
+        if self.__len > len_other:
             del self[-len_other:]
         return self
 
