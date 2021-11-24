@@ -83,3 +83,6 @@ crashlytics-build.properties
 fabric.properties
 .idea/*
 !.idea/watcherTasks.xml
+!.idea/externalDependencies.xml
+!.idea/inspectionProfiles/*
+!.idea/codeStyles/*

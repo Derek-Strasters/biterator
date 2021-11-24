@@ -14,10 +14,9 @@ from typing import (
     overload,
 )
 
-from biterator.biterators import biterator
-from biterator.const import ONES, ZEROS
-from biterator.exceptions import SubscriptError
-from biterator.types import DirtyBits, ValidBit
+from biterator._biterators import biterate
+from biterator.bits_exceptions import SubscriptError
+from biterator.const import ONES, ZEROS, DirtyBits, ValidBit
 
 
 class Bits(MutableSequence[bool]):
@@ -150,7 +149,7 @@ class Bits(MutableSequence[bool]):
             raise ValueError("unexpected argument, 'bit_values' must be set or there must be no other args set")
 
         elif bit_values is not None:
-            for value in biterator(bit_values, bit_length=bit_length, ones=ones, zeros=zeros):
+            for value in biterate(bit_values, bit_length=bit_length, ones=ones, zeros=zeros):
                 self.append(value)
 
     @classmethod
@@ -189,12 +188,12 @@ class Bits(MutableSequence[bool]):
             if "value" in dirty_bits and "bit_length" in dirty_bits:
                 bit_values = dirty_bits["value"]
                 bit_length = dirty_bits["bit_length"]
-                yield from biterator(bit_values=bit_values, bit_length=bit_length)
+                yield from biterate(bit_values=bit_values, bit_length=bit_length)
                 return
             raise ValueError(f"unsupported dict format {repr(dirty_bits)}")
 
         # Biterate other values
-        yield from biterator(bit_values=dirty_bits, ones=ones, zeros=zeros)
+        yield from biterate(bit_values=dirty_bits, ones=ones, zeros=zeros)
 
     def copy(self) -> "Bits":
         """
@@ -485,7 +484,7 @@ class Bits(MutableSequence[bool]):
         Bits("0b01010101")
         >>> Bits('01001001')["s"]
         Traceback (most recent call last):
-        biterator.exceptions.SubscriptError: unsupported subscript, 'Bits' does not support 'str' subscripts
+        biterator.bits_exceptions.SubscriptError: unsupported subscript, 'Bits' does not support 'str' subscripts
 
         :param index: The index or slice to retrieve.
         :return: The new Bits object or a bit value.

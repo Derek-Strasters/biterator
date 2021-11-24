@@ -51,5 +51,3 @@ repos:
         always_run: true
         pass_filenames: false
         args: [ "run", "pytest" ]
-
-# TODO: consider adding some of the default pre-commit-hooks

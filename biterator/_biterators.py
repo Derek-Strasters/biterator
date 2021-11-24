@@ -202,7 +202,7 @@ def str_to_bits(bit_str: str) -> Iterator[bool]:
     yield from bin_str_to_bits(bit_str)
 
 
-def biterator(
+def biterate(
     bit_values: Union[Iterable, int],
     bit_length: int = None,
     ones: Container = None,

@@ -6,9 +6,9 @@ The primary tools available are the `biterator()` function:
 And the `Bits()` class:
  * Holds bit values which can be iterated over and supports all bitwise operators.
 """
-from biterator.biterators import (
+from biterator._biterators import (
     bin_str_to_bits,
-    biterator,
+    biterate,
     bytes_to_bits,
     hex_str_to_bits,
     int_to_bits,
@@ -16,15 +16,11 @@ from biterator.biterators import (
     str_to_bits,
     translate_to_bits,
 )
-from biterator.bits import Bits
-from biterator.const import ONES, ZEROS
-from biterator.types import DirtyBits, ValidBit
+from biterator._bits import Bits
 
 __all__ = [
     "Bits",
-    "biterator",
-    "ONES",
-    "ZEROS",
+    "biterate",
     "bin_str_to_bits",
     "bytes_to_bits",
     "hex_str_to_bits",
@@ -32,6 +28,4 @@ __all__ = [
     "iter_bits",
     "str_to_bits",
     "translate_to_bits",
-    "DirtyBits",
-    "ValidBit",
 ]
