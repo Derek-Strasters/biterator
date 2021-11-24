@@ -8,11 +8,11 @@ Two of the most useful tools are:
 1. [`biterator.biterate()`](biterator/_biterators.py)
 2. [`biterator.Bits()`](biterator/_bits.py)
 
-`biterate()` is a function that attempts to yeild the most logical sequence of bits (as Booleans) for any given iterable
-object (and some objects that are not typically iterable, like integers).
+The `biterate()` function attempts to yield the most logical sequence of bits (as Booleans) for any given iterable
+object (and even *some* objects that are not typically iterable, like integers).
 
-The `Bits()` class expands upon this functionality as a way of storing parsed bits. `Bits()` supports all bitwise
-operators, and has methods for manipulation to facilitate convenient handling.
+The `Bits()` class expands upon this functionality by storing parsed bits and supporting all bitwise operators. It also
+defines many methods that facilitate manipulation for convenience of use.
 
 ## Installation
 
@@ -27,28 +27,28 @@ pip install biterator
 ### Some straightforward examples using the `biterate()` function:
 
 ```python
->>> from biterator import biterate
+from biterator import biterate
 ```
 
 Iterate a list of booleans.
 
 ```python
->>> list(biterate([True, False, True, False]))
-[True, False, True, False]
+list(biterate([True, False, True, False]))
+# [True, False, True, False]
 ```
 
 Iterate a tuple of integer 0 and 1 literals.
 
 ```python
->>> list(biterate(tuple([1, 0, 1, 0])))
+list(biterate(tuple([1, 0, 1, 0])))
 [True, False, True, False]
 ```
 
 Iterate a list of string "0" and "1" literals.
 
 ```python
->>> list(biterate(["1", "0", "1", "0"]))
-[True, False, True, False]
+list(biterate(["1", "0", "1", "0"]))
+# [True, False, True, False]
 ```
 
 ### Some more advanced examples:
@@ -56,74 +56,74 @@ Iterate a list of string "0" and "1" literals.
 Iterate a string containing a prefixed binary number.
 
 ```python
->>> list(biterate("0b1010"))
-[True, False, True, False]
+list(biterate("0b1010"))
+# [True, False, True, False]
 ```
 
 Iterate the bits of an integer, given it's total bit_length.
 
 ```python
->>> list(biterate(bit_values=10, bit_length=6))
-[False, False, True, False, True, False]
+list(biterate(bit_values=10, bit_length=6))
+# [False, False, True, False, True, False]
 ```
 
 Iterate the bits of a raw byte-string.
 
 ```python
->>> list(biterate(b"U"))
-[False, True, False, True, False, True, False, True]
+list(biterate(b"U"))
+# [False, True, False, True, False, True, False, True]
 ```
 
 Iterate the bits of an integer represented as a prefixed hexadecimal string.
 
 ```python
->>> list(biterate("0xAF"))
-[True, False, True, False, True, True, True, True]
+list(biterate("0xAF"))
+# [True, False, True, False, True, True, True, True]
 ```
 
 Iterate a generator.
 
 ```python
->>> list(biterate(i % 2 for i in range(4)))
-[False, True, False, True]
+list(biterate(i % 2 for i in range(4)))
+# [False, True, False, True]
 ```
 
 ### Examples with `Bits()`
 
-The `Bits()` class expands upon the utility of `biterate()` by efficiently storing bits as they are iterated over.  
+The `Bits()` class expands upon the utility of `biterate()` by efficiently storing bits as they are iterated over.
 `Bits()` support all bitwise operators and handle concatenation gracefully.
 
 ```python
->>> from biterator import Bits
+from biterator import Bits
 ```
 
 Instantiate with all the same types supported by biterate.
 
 ```python
->>> bits = Bits('0101')
->>> list(bits)
-[False, True, False, True]
+bits = Bits('0101')
+list(bits)
+# [False, True, False, True]
 ```
 
 Supports concatenation with naked biterable types.
 
 ```python
->>> "0xFF" + bits + "0000"
-Bits("0b1111111101010000")
+"0xFF" + bits + "0000"
+# Bits("0b1111111101010000")
 ```
 
 Supports all bitwise operators, also works with naked biterable types.
 
 ```python
->>> (Bits("1100") | Bits("0011")) & "1111"
-Bits("0b1111")
+(Bits("1100") | Bits("0011")) & "1111"
+# Bits("0b1111")
 ```
 
 Supports slicing.
 
 ```python
->>> Bits('10101010')[0:8:2]
-Bits("0b1111")
+Bits('10101010')[0:8:2]
+# Bits("0b1111")
 ```
 
 ### `Bits()` supports a variety of ways to represent data.
@@ -131,48 +131,51 @@ Bits("0b1111")
 Binary.
 
 ```python
->>> Bits("0xDEADBEEF").bin()
-'0b1101_1110 0b1010_1101 0b1011_1110 0b1110_1111'
+Bits("0xDEADBEEF").bin()
+# '0b1101_1110 0b1010_1101 0b1011_1110 0b1110_1111'
 ```
 
 Hexadecimal.
 
 ```python
->>> Bits("0b10111010110111000000110111100101").hex(compact=True)
-'0xBADC0DE5'
+Bits("0b10111010110111000000110111100101").hex(compact=True)
+# '0xBADC0DE5'
 ```
 
 Raw bytes (instantiated from an integer with provided bit_length).
 
 ```python
->>> bytes(Bits(5735816763073854918203775149089, 104))
-b'Hello, World!'
+bytes(Bits(5735816763073854918203775149089, 104))
+# b'Hello, World!'
 ```
 
 Decode bytes with your favorite encoder!
 
 ```python
->>> Bits("0x4F682C206869204D61726B21F09F988A").decode("utf-8")
-'Oh, hi Mark!😊'
+Bits("0x4F682C206869204D61726B21F09F988A").decode("utf-8")
+# 'Oh, hi Mark!😊'
 ```
 
 ### Quickly implement complex bit operations!
 
+Implement a symmetric XOR cypher with ease! https://en.wikipedia.org/wiki/XOR_cipher
+
 ```python
-# Implement a symmetric XOR cypher with ease! https://en.wikipedia.org/wiki/XOR_cipher
->>> secret_code = Bits('0xBF658DC46D3068D57F9F61DBC676666A9A689E75DBD46F31')
+secret_code = Bits('0xBF658DC46D3068D57F9F61DBC676666A9A689E75DBD46F31')
 
-# XOR each bit with a bit from the key (the key repeats over the message)
->>> def xor_cypher(msg: Bits, key: Bits):
-...     return Bits(a ^ b for i in range(0, len(msg), len(key)) for a, b in zip(msg[i : i+len(key)], key))
+def xor_cypher(msg: Bits, key: Bits):
+    return Bits(a ^ b for i in range(0, len(msg), len(key)) for a, b in zip(msg[i: i + len(key)], key))
 
->>> decrypted = xor_cypher(secret_code, Bits("0xF100FBA11"))
->>> bytes(decrypted)
-b'Never gonna give you up!'
+decrypted = xor_cypher(secret_code, Bits("0xF100FBA11"))
+bytes(decrypted)
+# b'Never gonna give you up!'
+```
 
-# Because it's symmetric, you change it back with the same key!
->>> secret_code == xor_cypher(decrypted, Bits("0xF100FBA11"))
-True
+Because it's symmetric, you change it back with the same key!
+
+```python
+secret_code == xor_cypher(decrypted, Bits("0xF100FBA11"))
+# True
 ```
 
 ## Contributing
