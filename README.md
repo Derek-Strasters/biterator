@@ -41,7 +41,7 @@ Iterate a tuple of integer 0 and 1 literals.
 
 ```python
 list(biterate(tuple([1, 0, 1, 0])))
-[True, False, True, False]
+# [True, False, True, False]
 ```
 
 Iterate a list of string "0" and "1" literals.

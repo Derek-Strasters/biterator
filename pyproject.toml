@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "biterator"
-version = "0.4.0"
+version = "0.4.1"
 description = "Bit manipulation and iteration tool suite."
 authors = ["derek-strasters <paracite.org@gmail.com>"]
 readme = "README.md"
