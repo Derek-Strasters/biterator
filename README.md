@@ -206,6 +206,7 @@ Git hooks will run linting, type checking, and pythons on commit, if any checks 
 
 __Milestones for Version 1.0.0 release:__
 
+- [ ] Add ability to add or read bytes as little endian.
 - [ ] Create UnitTest suite.
 - [ ] Code coverage in git-hooks.
 - [ ] Create a workflow that publishes on PR merge to master.
